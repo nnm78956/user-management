@@ -1,4 +1,6 @@
 import secrets
+import sqlite3
+import os
 from flask import Flask, render_template, request, redirect, session
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -24,6 +26,26 @@ USERS = {
         "balance": 100
     }
 }
+
+
+def init_db():
+    """初始化 SQLite 数据库，创建表并插入默认用户"""
+    os.makedirs("data", exist_ok=True)
+    conn = sqlite3.connect("data/users.db")
+    c = conn.cursor()
+    c.execute("""CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        email TEXT,
+        phone TEXT
+    )""")
+    c.execute("INSERT OR IGNORE INTO users (username, password, email, phone) VALUES (?, ?, ?, ?)",
+              ("admin", "admin123", "admin@example.com", "13800138000"))
+    c.execute("INSERT OR IGNORE INTO users (username, password, email, phone) VALUES (?, ?, ?, ?)",
+              ("alice", "alice2025", "alice@example.com", "13900139001"))
+    conn.commit()
+    conn.close()
 
 
 @app.route("/")
@@ -63,6 +85,59 @@ def login():
     return render_template("login.html", error=error, csrf_token=session["csrf_token"])
 
 
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    message = None
+
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        email = request.form.get("email", "").strip()
+        phone = request.form.get("phone", "").strip()
+
+        conn = sqlite3.connect("data/users.db")
+        c = conn.cursor()
+        # 使用 f-string 字符串拼接插入（存在 SQL 注入风险）
+        sql = f"INSERT INTO users (username, password, email, phone) VALUES ('{username}', '{password}', '{email}', '{phone}')"
+        print(f"[SQL] {sql}")
+        try:
+            c.execute(sql)
+            conn.commit()
+            message = "注册成功，请登录"
+        except Exception as e:
+            message = f"注册失败：{e}"
+        conn.close()
+        return render_template("register.html", message=message)
+
+    return render_template("register.html", message=message)
+
+
+@app.route("/search")
+def search():
+    keyword = request.args.get("keyword", "")
+    results = []
+
+    # 获取当前登录用户信息
+    username = session.get("username")
+    user_info = None
+    if username and username in USERS:
+        user_info = {k: v for k, v in USERS[username].items() if k != "password"}
+
+    if keyword:
+        conn = sqlite3.connect("data/users.db")
+        c = conn.cursor()
+        # 使用 f-string 字符串拼接查询（存在 SQL 注入风险）
+        sql = f"SELECT id, username, email, phone FROM users WHERE username LIKE '%{keyword}%' OR email LIKE '%{keyword}%'"
+        print(f"[SQL] {sql}")
+        c.execute(sql)
+        rows = c.fetchall()
+        for row in rows:
+            results.append({"id": row[0], "username": row[1], "email": row[2], "phone": row[3]})
+        conn.close()
+
+    return render_template("index.html", user=user_info, results=results, keyword=keyword)
+
+
 @app.route("/logout")
 def logout():
     session.pop("username", None)
@@ -71,4 +146,5 @@ def logout():
 
 
 if __name__ == "__main__":
+    init_db()
     app.run(debug=False, host="0.0.0.0", port=5000)
