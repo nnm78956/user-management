@@ -7,10 +7,14 @@
 ## 功能特性
 
 - ✅ **用户登录认证** — 基于 Session 的登录态管理
+- ✅ **用户注册** — 新用户可自行注册账号
+- ✅ **用户搜索** — 登录后可按用户名或邮箱模糊搜索用户
 - ✅ **用户信息展示** — 登录后可查看个人完整信息
 - ✅ **安全登出** — 清除 Session 安全退出
 - ✅ **密码哈希存储** — 使用 Werkzeug 安全哈希，不存明文密码
 - ✅ **CSRF 防护** — 登录表单携带一次性 Token，防止跨站请求伪造
+- ✅ **SQL 注入防护** — 所有数据库查询使用参数化查询（? 占位符）
+- ✅ **SQLite 数据库** — 注册和搜索数据持久化存储
 - ✅ **响应式界面** — 简洁现代的 UI 设计，适配多种屏幕
 
 ---
@@ -56,11 +60,13 @@ python app.py
 ```
 user-management/
 │
-├── app.py                      # Flask 主应用（路由、认证逻辑）
+├── app.py                      # Flask 主应用（路由、认证、注册、搜索）
+├── data/                       # SQLite 数据库文件目录（自动创建）
 ├── templates/                  # HTML 模板文件夹
 │   ├── base.html               # 基础模板（导航栏、布局）
-│   ├── index.html              # 首页（用户信息展示）
-│   └── login.html              # 登录页面
+│   ├── index.html              # 首页（用户信息展示 + 搜索）
+│   ├── login.html              # 登录页面
+│   └── register.html           # 注册页面
 ├── static/
 │   └── css/
 │       └── style.css           # 全局样式文件
@@ -77,6 +83,7 @@ user-management/
 | **Flask 3.x** | Web 框架 |
 | **Jinja2** | 模板引擎（HTML 渲染） |
 | **Werkzeug** | 密码哈希（`generate_password_hash` / `check_password_hash`） |
+| **SQLite 3** | 数据库（注册、搜索数据持久化） |
 | **secrets** | CSRF Token 生成 |
 
 ---
@@ -109,6 +116,12 @@ user-management/
 
 - Jinja2 模板引擎默认开启自动转义，所有 `{{ }}` 变量中的 HTML 特殊字符会被转义，防止跨站脚本攻击
 
+### 6. SQL 注入防护
+
+- 所有数据库查询使用**参数化查询**（`?` 占位符）
+- 用户输入作为数据传入，不会被解析为 SQL 代码
+- 注册和搜索功能均经过安全加固
+
 ---
 
 ## API 接口一览
@@ -118,6 +131,9 @@ user-management/
 | `/` | GET | 首页，已登录显示用户信息，未登录提示登录 |
 | `/login` | GET | 显示登录表单 |
 | `/login` | POST | 提交用户名和密码进行登录 |
+| `/register` | GET | 显示注册表单 |
+| `/register` | POST | 提交用户名、密码、邮箱、手机号进行注册 |
+| `/search` | GET | 按用户名或邮箱模糊搜索用户（需登录） |
 | `/logout` | GET | 清除 Session 并重定向到首页 |
 
 ---
@@ -126,7 +142,7 @@ user-management/
 
 ### 添加新用户
 
-在 `app.py` 的 `USERS` 字典中添加新条目：
+**方式一**：在 `app.py` 的 `USERS` 字典中添加新条目（登录可用）：
 
 ```python
 USERS = {
@@ -141,6 +157,8 @@ USERS = {
     }
 }
 ```
+
+**方式二**：通过网页 `/register` 注册（写入 SQLite 数据库）
 
 ### 修改监听端口
 
