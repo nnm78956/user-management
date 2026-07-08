@@ -97,11 +97,12 @@ def register():
 
         conn = sqlite3.connect("data/users.db")
         c = conn.cursor()
-        # 使用 f-string 字符串拼接插入（存在 SQL 注入风险）
-        sql = f"INSERT INTO users (username, password, email, phone) VALUES ('{username}', '{password}', '{email}', '{phone}')"
-        print(f"[SQL] {sql}")
+        # 使用参数化查询防止 SQL 注入
+        sql = "INSERT INTO users (username, password, email, phone) VALUES (?, ?, ?, ?)"
+        params = (username, password, email, phone)
+        print(f"[SQL] {sql} | params={params}")
         try:
-            c.execute(sql)
+            c.execute(sql, params)
             conn.commit()
             message = "注册成功，请登录"
         except Exception as e:
@@ -126,10 +127,11 @@ def search():
     if keyword:
         conn = sqlite3.connect("data/users.db")
         c = conn.cursor()
-        # 使用 f-string 字符串拼接查询（存在 SQL 注入风险）
-        sql = f"SELECT id, username, email, phone FROM users WHERE username LIKE '%{keyword}%' OR email LIKE '%{keyword}%'"
-        print(f"[SQL] {sql}")
-        c.execute(sql)
+        # 使用参数化查询防止 SQL 注入
+        sql = "SELECT id, username, email, phone FROM users WHERE username LIKE ? OR email LIKE ?"
+        like_pattern = f"%{keyword}%"
+        print(f"[SQL] {sql} | keyword=%{keyword}%")
+        c.execute(sql, (like_pattern, like_pattern))
         rows = c.fetchall()
         for row in rows:
             results.append({"id": row[0], "username": row[1], "email": row[2], "phone": row[3]})
