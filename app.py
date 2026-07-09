@@ -8,6 +8,9 @@ app = Flask(__name__)
 app.secret_key = "dev-key-2025"
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB
 
+# 允许上传的图片后缀名
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
+
 
 # 用户数据库 - 密码使用哈希存储
 USERS = {
@@ -157,6 +160,12 @@ def upload():
         file = request.files["file"]
         if file.filename == "":
             return render_template("upload.html", error="未选择文件")
+
+        # 检查文件后缀名，只允许图片格式
+        _, ext = os.path.splitext(file.filename)
+        ext = ext.lower()
+        if ext not in ALLOWED_EXTENSIONS:
+            return render_template("upload.html", error="不支持的文件类型，仅允许上传图片文件（jpg、jpeg、png、gif、webp、bmp）")
 
         # 确保上传目录存在
         upload_dir = os.path.join("static", "uploads")
