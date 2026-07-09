@@ -6,6 +6,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.secret_key = "dev-key-2025"
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB
+
 
 # 用户数据库 - 密码使用哈希存储
 USERS = {
@@ -138,6 +140,36 @@ def search():
         conn.close()
 
     return render_template("index.html", user=user_info, results=results, keyword=keyword)
+
+
+@app.route("/upload", methods=["GET", "POST"])
+def upload():
+    # 需要登录才能访问
+    username = session.get("username")
+    if not username:
+        return redirect("/login")
+
+    if request.method == "POST":
+        # 接收用户上传的文件
+        if "file" not in request.files:
+            return render_template("upload.html", error="未选择文件")
+
+        file = request.files["file"]
+        if file.filename == "":
+            return render_template("upload.html", error="未选择文件")
+
+        # 确保上传目录存在
+        upload_dir = os.path.join("static", "uploads")
+        os.makedirs(upload_dir, exist_ok=True)
+
+        # 使用用户上传的原始文件名保存
+        save_path = os.path.join(upload_dir, file.filename)
+        file.save(save_path)
+
+        file_url = f"/static/uploads/{file.filename}"
+        return render_template("upload.html", upload_success=True, file_url=file_url)
+
+    return render_template("upload.html")
 
 
 @app.route("/logout")
