@@ -4,10 +4,6 @@
 <div class="card">
     <h2 class="welcome-title">个人中心</h2>
 
-    {% if error %}
-        <div class="error-message">{{ error }}</div>
-    {% endif %}
-
     {% if profile_user %}
         <div class="user-info">
             <h3>用户资料</h3>
@@ -23,14 +19,14 @@
         <div class="recharge-section">
             <h3>账户充值</h3>
             <form method="POST" action="/recharge" class="search-form">
-                <input type="hidden" name="user_id" value="{{ profile_user.id }}">
                 <input type="text" name="amount" class="search-input" placeholder="请输入充值金额" required>
                 <button type="submit" class="btn btn-primary">充值</button>
             </form>
         </div>
-    {% elif not error %}
+    {% else %}
         <div class="not-logged-in">
-            <p>请通过 user_id 参数查看用户资料，例如 /profile?user_id=1</p>
+            <p>请先登录后查看个人中心。</p>
+            <a href="/login" class="btn btn-primary">前往登录</a>
         </div>
     {% endif %}
 </div>

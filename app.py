@@ -188,43 +188,58 @@ def upload():
 
 @app.route("/profile")
 def profile():
-    user_id = request.args.get("user_id", "").strip()
-    profile_user = None
-    error = None
+    # 需要登录才能访问
+    username = session.get("username")
+    if not username:
+        return redirect("/login")
 
-    if user_id:
-        conn = sqlite3.connect("data/users.db")
-        c = conn.cursor()
-        c.execute("SELECT id, username, email, phone, balance FROM users WHERE id = ?", (user_id,))
-        row = c.fetchone()
-        conn.close()
-        if row:
-            profile_user = {
-                "id": row[0],
-                "username": row[1],
-                "email": row[2],
-                "phone": row[3],
-                "balance": row[4] if row[4] is not None else 0
-            }
-        else:
-            error = "用户不存在"
+    # 从 session 获取当前登录用户，不从 URL 参数获取 user_id，防止越权查看
+    conn = sqlite3.connect("data/users.db")
+    c = conn.cursor()
+    c.execute("SELECT id, username, email, phone, balance FROM users WHERE username = ?", (username,))
+    row = c.fetchone()
+    conn.close()
 
-    return render_template("profile.html", profile_user=profile_user, error=error, query_user_id=user_id)
+    if row:
+        profile_user = {
+            "id": row[0],
+            "username": row[1],
+            "email": row[2],
+            "phone": row[3],
+            "balance": row[4] if row[4] is not None else 0
+        }
+    else:
+        profile_user = None
+
+    return render_template("profile.html", profile_user=profile_user)
 
 
 @app.route("/recharge", methods=["POST"])
 def recharge():
-    user_id = request.form.get("user_id", "").strip()
+    # 需要登录才能访问
+    username = session.get("username")
+    if not username:
+        return redirect("/login")
+
     amount = request.form.get("amount", "").strip()
 
-    # 直接修改余额，不做任何校验
+    # 禁止负数充值
+    try:
+        amount_val = float(amount)
+    except ValueError:
+        return redirect("/profile")
+
+    if amount_val <= 0:
+        return redirect("/profile")
+
+    # 只能给当前登录用户充值
     conn = sqlite3.connect("data/users.db")
     c = conn.cursor()
-    c.execute("UPDATE users SET balance = balance + ? WHERE id = ?", (amount, user_id))
+    c.execute("UPDATE users SET balance = balance + ? WHERE username = ?", (amount, username))
     conn.commit()
     conn.close()
 
-    return redirect(f"/profile?user_id={user_id}")
+    return redirect("/profile")
 
 
 @app.route("/logout")
