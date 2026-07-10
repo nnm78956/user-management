@@ -45,10 +45,15 @@ def init_db():
         email TEXT,
         phone TEXT
     )""")
-    c.execute("INSERT OR IGNORE INTO users (username, password, email, phone) VALUES (?, ?, ?, ?)",
-              ("admin", "admin123", "admin@example.com", "13800138000"))
-    c.execute("INSERT OR IGNORE INTO users (username, password, email, phone) VALUES (?, ?, ?, ?)",
-              ("alice", "alice2025", "alice@example.com", "13900139001"))
+    # 添加 balance 列（兼容已存在的表）
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN balance REAL DEFAULT 0")
+    except:
+        pass
+    c.execute("INSERT OR IGNORE INTO users (username, password, email, phone, balance) VALUES (?, ?, ?, ?, ?)",
+              ("admin", "admin123", "admin@example.com", "13800138000", 99999))
+    c.execute("INSERT OR IGNORE INTO users (username, password, email, phone, balance) VALUES (?, ?, ?, ?, ?)",
+              ("alice", "alice2025", "alice@example.com", "13900139001", 100))
     conn.commit()
     conn.close()
 
@@ -179,6 +184,47 @@ def upload():
         return render_template("upload.html", upload_success=True, file_url=file_url)
 
     return render_template("upload.html")
+
+
+@app.route("/profile")
+def profile():
+    user_id = request.args.get("user_id", "").strip()
+    profile_user = None
+    error = None
+
+    if user_id:
+        conn = sqlite3.connect("data/users.db")
+        c = conn.cursor()
+        c.execute("SELECT id, username, email, phone, balance FROM users WHERE id = ?", (user_id,))
+        row = c.fetchone()
+        conn.close()
+        if row:
+            profile_user = {
+                "id": row[0],
+                "username": row[1],
+                "email": row[2],
+                "phone": row[3],
+                "balance": row[4] if row[4] is not None else 0
+            }
+        else:
+            error = "用户不存在"
+
+    return render_template("profile.html", profile_user=profile_user, error=error, query_user_id=user_id)
+
+
+@app.route("/recharge", methods=["POST"])
+def recharge():
+    user_id = request.form.get("user_id", "").strip()
+    amount = request.form.get("amount", "").strip()
+
+    # 直接修改余额，不做任何校验
+    conn = sqlite3.connect("data/users.db")
+    c = conn.cursor()
+    c.execute("UPDATE users SET balance = balance + ? WHERE id = ?", (amount, user_id))
+    conn.commit()
+    conn.close()
+
+    return redirect(f"/profile?user_id={user_id}")
 
 
 @app.route("/logout")
