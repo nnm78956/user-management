@@ -246,6 +246,9 @@ def recharge():
 def page():
     name = request.args.get("name", "")
 
+    # 修复文件包含漏洞：移除路径穿越字符
+    name = name.replace("../", "").replace("..\", "")
+
     username = session.get("username")
     user_info = None
     if username and username in USERS:
