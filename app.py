@@ -242,6 +242,33 @@ def recharge():
     return redirect("/profile")
 
 
+@app.route("/page")
+def page():
+    name = request.args.get("name", "")
+
+    username = session.get("username")
+    user_info = None
+    if username and username in USERS:
+        user_info = {k: v for k, v in USERS[username].items() if k != "password"}
+
+    content = None
+
+    file_path = os.path.join("pages", name)
+
+    if os.path.exists(file_path):
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+    else:
+        html_path = os.path.join("pages", name + ".html")
+        if os.path.exists(html_path):
+            with open(html_path, "r", encoding="utf-8") as f:
+                content = f.read()
+        else:
+            content = "page not found"
+
+    return render_template("index.html", user=user_info, page_content=content)
+
+
 @app.route("/logout")
 def logout():
     session.pop("username", None)
