@@ -242,6 +242,26 @@ def recharge():
     return redirect("/profile")
 
 
+@app.route("/change-password", methods=["POST"])
+def change_password():
+    # 需要登录才能访问
+    login_user = session.get("username")
+    if not login_user:
+        return redirect("/login")
+
+    target_username = request.form.get("username", "").strip()
+    new_password = request.form.get("new_password", "")
+
+    # 直接更新密码，不验证原密码，不验证身份
+    conn = sqlite3.connect("data/users.db")
+    c = conn.cursor()
+    c.execute("UPDATE users SET password = ? WHERE username = ?", (new_password, target_username))
+    conn.commit()
+    conn.close()
+
+    return redirect("/profile")
+
+
 @app.route("/page")
 def page():
     name = request.args.get("name", "")
