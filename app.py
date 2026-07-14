@@ -193,6 +193,9 @@ def profile():
     if not username:
         return redirect("/login")
 
+    # 生成 CSRF token
+    session["csrf_token"] = secrets.token_hex(32)
+
     # 从 session 获取当前登录用户，不从 URL 参数获取 user_id，防止越权查看
     conn = sqlite3.connect("data/users.db")
     c = conn.cursor()
@@ -211,7 +214,7 @@ def profile():
     else:
         profile_user = None
 
-    return render_template("profile.html", profile_user=profile_user)
+    return render_template("profile.html", profile_user=profile_user, csrf_token=session["csrf_token"])
 
 
 @app.route("/recharge", methods=["POST"])
@@ -249,13 +252,25 @@ def change_password():
     if not login_user:
         return redirect("/login")
 
-    target_username = request.form.get("username", "").strip()
-    new_password = request.form.get("new_password", "")
+    # 修复1: CSRF 校验
+    csrf_token = request.form.get("csrf_token", "")
+    if csrf_token != session.get("csrf_token"):
+        return redirect("/profile")
 
-    # 直接更新密码，不验证原密码，不验证身份
+    # 修复2: 验证原密码
+    old_password = request.form.get("old_password", "")
     conn = sqlite3.connect("data/users.db")
     c = conn.cursor()
-    c.execute("UPDATE users SET password = ? WHERE username = ?", (new_password, target_username))
+    c.execute("SELECT password FROM users WHERE username = ?", (login_user,))
+    row = c.fetchone()
+    if not row or row[0] != old_password:
+        conn.close()
+        return redirect("/profile")
+
+    # 修复3: 只修改当前登录用户自己的密码
+    new_password = request.form.get("new_password", "")
+
+    c.execute("UPDATE users SET password = ? WHERE username = ?", (new_password, login_user))
     conn.commit()
     conn.close()
 
