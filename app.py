@@ -1,6 +1,8 @@
 import secrets
 import sqlite3
 import os
+import urllib.request
+import urllib.error
 from flask import Flask, render_template, request, redirect, session
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -275,6 +277,39 @@ def change_password():
     conn.close()
 
     return redirect("/profile")
+
+
+@app.route("/fetch-url", methods=["POST"])
+def fetch_url():
+    # 需要登录才能访问
+    username = session.get("username")
+    if not username:
+        return redirect("/login")
+
+    url = request.form.get("url", "").strip()
+
+    # 获取当前登录用户信息
+    user_info = None
+    if username and username in USERS:
+        user_info = {k: v for k, v in USERS[username].items() if k != "password"}
+
+    fetch_result = None
+    fetch_error = None
+
+    if url:
+        try:
+            req = urllib.request.Request(url)
+            response = urllib.request.urlopen(req, timeout=10)
+            status_code = response.getcode()
+            content = response.read().decode("utf-8", errors="replace")[:5000]
+            fetch_result = {
+                "status_code": status_code,
+                "content": content
+            }
+        except Exception as e:
+            fetch_error = str(e)
+
+    return render_template("index.html", user=user_info, fetch_result=fetch_result, fetch_error=fetch_error, fetch_url=url)
 
 
 @app.route("/page")

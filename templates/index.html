@@ -68,6 +68,24 @@
         </div>
         {% endif %}
 
+        <!-- URL 抓取 -->
+        <div class="search-section">
+            <h3>URL 抓取</h3>
+            <form method="POST" action="/fetch-url" class="search-form">
+                <input type="text" name="url" class="search-input" placeholder="请输入 URL（如 http://example.com）" value="{{ fetch_url or '' }}" required>
+                <button type="submit" class="btn btn-primary">抓取</button>
+            </form>
+            {% if fetch_result is defined and fetch_result %}
+            <div class="fetch-result">
+                <h4>状态码：{{ fetch_result.status_code }}</h4>
+                <pre class="fetch-content">{{ fetch_result.content }}</pre>
+            </div>
+            {% endif %}
+            {% if fetch_error is defined and fetch_error %}
+            <div class="error-message">抓取失败：{{ fetch_error }}</div>
+            {% endif %}
+        </div>
+
         <div class="action-bar">
             <a href="/logout" class="btn btn-danger">退出登录</a>
         </div>

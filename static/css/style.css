@@ -505,3 +505,29 @@ body {
     color: #666;
     line-height: 1.8;
 }
+
+
+/* URL fetch result */
+.fetch-result {
+    margin-top: 16px;
+    padding: 16px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+}
+.fetch-result h4 {
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 12px;
+}
+.fetch-content {
+    background: #f5f5f5;
+    padding: 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 400px;
+    overflow-y: auto;
+}
