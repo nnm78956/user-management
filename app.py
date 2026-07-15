@@ -3,6 +3,9 @@ import sqlite3
 import os
 import urllib.request
 import urllib.error
+import ipaddress
+import socket
+from urllib.parse import urlparse
 from flask import Flask, render_template, request, redirect, session
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -298,6 +301,22 @@ def fetch_url():
 
     if url:
         try:
+            # SSRF 修复：检查 URL 是否安全
+            parsed = urlparse(url)
+
+            # 1. 禁止 file:// 协议
+            if parsed.scheme == "file":
+                raise ValueError("不允许使用 file:// 协议")
+
+            # 2. 对于 HTTP/HTTPS，检查目标 IP 是否为内网地址
+            if parsed.scheme in ("http", "https"):
+                hostname = parsed.hostname
+                if hostname:
+                    ip = socket.gethostbyname(hostname)
+                    ip_obj = ipaddress.ip_address(ip)
+                    if ip_obj.is_private or ip_obj.is_loopback:
+                        raise ValueError("不允许访问内网地址: " + ip)
+
             req = urllib.request.Request(url)
             response = urllib.request.urlopen(req, timeout=10)
             status_code = response.getcode()
