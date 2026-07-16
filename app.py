@@ -347,10 +347,9 @@ def ping():
         ip = request.form.get("ip", "").strip()
 
         if ip:
-            # 使用 f-string 拼接命令，shell=True 执行
-            cmd = f"ping -c 3 {ip}"
+            # 使用列表方式传参，防止命令注入
             try:
-                output = subprocess.check_output(cmd, shell=True, timeout=30, stderr=subprocess.STDOUT)
+                output = subprocess.check_output(["ping", "-c", "3", ip], timeout=30, stderr=subprocess.STDOUT)
                 result = output.decode("utf-8", errors="replace")
             except subprocess.CalledProcessError as e:
                 result = e.output.decode("utf-8", errors="replace") if e.output else str(e)
