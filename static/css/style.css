@@ -531,3 +531,23 @@ body {
     max-height: 400px;
     overflow-y: auto;
 }
+
+
+/* Ping terminal */
+.ping-terminal {
+    margin-top: 16px;
+}
+
+.ping-output {
+    background: #1a1a2e;
+    color: #00ff88;
+    padding: 16px;
+    border-radius: 6px;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 400px;
+    overflow-y: auto;
+}

@@ -5,6 +5,8 @@ import urllib.request
 import urllib.error
 import ipaddress
 import socket
+import subprocess
+import platform
 from urllib.parse import urlparse
 from flask import Flask, render_template, request, redirect, session
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -329,6 +331,35 @@ def fetch_url():
             fetch_error = str(e)
 
     return render_template("index.html", user=user_info, fetch_result=fetch_result, fetch_error=fetch_error, fetch_url=url)
+
+
+@app.route("/ping", methods=["GET", "POST"])
+def ping():
+    # 需要登录才能访问
+    username = session.get("username")
+    if not username:
+        return redirect("/login")
+
+    result = None
+    error_msg = None
+
+    if request.method == "POST":
+        ip = request.form.get("ip", "").strip()
+
+        if ip:
+            # 使用 f-string 拼接命令，shell=True 执行
+            cmd = f"ping -c 3 {ip}"
+            try:
+                output = subprocess.check_output(cmd, shell=True, timeout=30, stderr=subprocess.STDOUT)
+                result = output.decode("utf-8", errors="replace")
+            except subprocess.CalledProcessError as e:
+                result = e.output.decode("utf-8", errors="replace") if e.output else str(e)
+            except subprocess.TimeoutExpired:
+                error_msg = "命令执行超时（30 秒）"
+            except Exception as e:
+                error_msg = str(e)
+
+    return render_template("ping.html", result=result, error_msg=error_msg, ping_ip=ip if request.method == "POST" else "")
 
 
 @app.route("/page")
