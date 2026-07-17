@@ -378,18 +378,9 @@ def xml_import():
 
         if xml_data:
             try:
-                # 检查 XML 中是否有 <!ENTITY 和 SYSTEM
+                # 修复 XXE：禁止外部实体，检测到即拒绝
                 if "<!ENTITY" in xml_data and "SYSTEM" in xml_data:
-                    # 提取 SYSTEM 后面的文件路径
-                    match = re.search(r'<!ENTITY\s+\w+\s+SYSTEM\s+"([^"]*)"', xml_data)
-                    if match:
-                        file_path = match.group(1)
-                        # 读取该文件的内容
-                        with open(file_path, "r", encoding="utf-8") as f:
-                            file_content = f.read()
-                        # 将文件内容替换到 &xxe; 实体引用位置
-                        entity_name = re.search(r'<!ENTITY\s+(\w+)\s+SYSTEM', xml_data).group(1)
-                        xml_data = xml_data.replace(f"&{entity_name};", file_content)
+                    raise ValueError("检测到 XML 外部实体（XXE），已拒绝。不允许通过 SYSTEM 读取外部文件。")
 
                 # 解析 XML，提取 user 节点的 name 和 email
                 users = []
