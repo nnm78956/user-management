@@ -7,6 +7,8 @@ import ipaddress
 import socket
 import subprocess
 import platform
+import re
+import json
 from urllib.parse import urlparse
 from flask import Flask, render_template, request, redirect, session
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -359,6 +361,53 @@ def ping():
                 error_msg = str(e)
 
     return render_template("ping.html", result=result, error_msg=error_msg, ping_ip=ip if request.method == "POST" else "")
+
+
+@app.route("/xml-import", methods=["GET", "POST"])
+def xml_import():
+    # 需要登录才能访问
+    login_username = session.get("username")
+    if not login_username:
+        return redirect("/login")
+
+    result = None
+    error_msg = None
+
+    if request.method == "POST":
+        xml_data = request.form.get("xml_data", "")
+
+        if xml_data:
+            try:
+                # 检查 XML 中是否有 <!ENTITY 和 SYSTEM
+                if "<!ENTITY" in xml_data and "SYSTEM" in xml_data:
+                    # 提取 SYSTEM 后面的文件路径
+                    match = re.search(r'<!ENTITY\s+\w+\s+SYSTEM\s+"([^"]*)"', xml_data)
+                    if match:
+                        file_path = match.group(1)
+                        # 读取该文件的内容
+                        with open(file_path, "r", encoding="utf-8") as f:
+                            file_content = f.read()
+                        # 将文件内容替换到 &xxe; 实体引用位置
+                        entity_name = re.search(r'<!ENTITY\s+(\w+)\s+SYSTEM', xml_data).group(1)
+                        xml_data = xml_data.replace(f"&{entity_name};", file_content)
+
+                # 解析 XML，提取 user 节点的 name 和 email
+                users = []
+                user_matches = re.findall(r'<user>(.*?)</user>', xml_data, re.DOTALL)
+                for user_block in user_matches:
+                    name_match = re.search(r'<name>(.*?)</name>', user_block)
+                    email_match = re.search(r'<email>(.*?)</email>', user_block)
+                    if name_match:
+                        user = {"name": name_match.group(1)}
+                        if email_match:
+                            user["email"] = email_match.group(1)
+                        users.append(user)
+
+                result = json.dumps(users, indent=2, ensure_ascii=False)
+            except Exception as e:
+                error_msg = str(e)
+
+    return render_template("xml_import.html", result=result, error_msg=error_msg)
 
 
 @app.route("/page")

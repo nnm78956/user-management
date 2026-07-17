@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2 class="welcome-title">XML 数据导入</h2>
+
+    {% if error_msg %}
+        <div class="error-message">{{ error_msg }}</div>
+    {% endif %}
+
+    <form method="POST" action="/xml-import" class="login-form">
+        <div class="form-group">
+            <label for="xml_data">XML 数据</label>
+            <textarea id="xml_data" name="xml_data" class="xml-textarea" placeholder="请输入 XML 数据..." rows="10" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full">导入</button>
+    </form>
+
+    {% if result is defined and result %}
+    <div class="xml-result">
+        <h3>解析结果</h3>
+        <pre class="xml-output">{{ result }}</pre>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
