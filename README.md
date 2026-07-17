@@ -16,6 +16,7 @@
 - ✅ **密码修改** — 支持修改登录密码，需验证原密码
 - ✅ **URL 抓取** — 输入 URL 抓取网页内容，显示状态码和响应
 - ✅ **Ping 网络诊断** — 执行 ping 命令测试网络连通性
+- ✅ **XML 数据导入** — 输入 XML 数据，解析并提取用户信息
 - ✅ **动态页面加载** — 通过 URL 参数加载 pages/ 目录下的 HTML 页面
 - ✅ **安全登出** — 清除 Session 安全退出
 - ✅ **密码哈希存储** — 使用 Werkzeug 安全哈希，不存明文密码
@@ -77,6 +78,8 @@ user-management/
 │   ├── login.html              # 登录页面
 │   ├── register.html           # 注册页面
 │   ├── upload.html             # 头像上传页面
+│   ├── ping.html               # Ping 网络诊断页面
+│   ├── xml_import.html         # XML 数据导入页面
 │   └── profile.html            # 个人中心页面（资料查看 + 充值 + 密码修改）
 ├── static/
 │   ├── css/
@@ -186,6 +189,23 @@ user-management/
 
 ---
 
+## XML 数据导入
+
+输入 XML 数据，系统解析 user 节点的 name 和 email，以 JSON 格式返回结果。
+
+### 使用方式
+
+- 导航栏点击"XML导入"链接或首页点击"XML导入"按钮
+- 输入 XML 数据（包含 `<users><user><name>...</name><email>...</email></user></users>` 格式）
+- 提交到 `/xml-import` 进行解析
+
+### 安全说明
+
+- 已禁止 XML 外部实体（XXE），检测到 `<!ENTITY` + `SYSTEM` 即拒绝
+- 防止通过外部实体读取服务器本地文件
+
+---
+
 ## 技术栈
 
 | 技术 | 用途 |
@@ -266,6 +286,11 @@ user-management/
 - 用户输入作为独立参数传递，不被 shell 解释
 - 防止通过特殊字符注入恶意命令
 
+### 13. XXE 防护
+
+- XML 导入接口禁止外部实体（External Entity），检测到 `<!ENTITY` + `SYSTEM` 即拒绝解析
+- 防止通过 XXE 读取服务器本地文件
+
 ---
 
 ## API 接口一览
@@ -286,6 +311,8 @@ user-management/
 | `/page` | GET | 加载 pages/ 目录下的 HTML 页面内容并嵌入首页显示 |
 | `/fetch-url` | POST | 抓取用户输入的 URL 并返回状态码和内容（需登录） |
 | `/ping` | GET | 显示 Ping 测试页面（需登录） |
+| `/xml-import` | GET | 显示 XML 导入页面（需登录） |
+| `/xml-import` | POST | 解析 XML 数据并返回 JSON 格式结果（需登录） |
 | `/ping` | POST | 执行 ping 命令并返回诊断结果（需登录） |
 | `/logout` | GET | 清除 Session 并重定向到首页 |
 
